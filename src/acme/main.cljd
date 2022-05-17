@@ -1,0 +1,69 @@
+(ns acme.main
+  ;; pure dart package are imported using string
+  (:require ["package:flutter/material.dart" :as m]
+            [cljd.flutter.alpha :as f]
+            ["package:flutter/widgets.dart" :as widgets]
+            ["package:flutter/painting.dart" :as painting]))
+
+#_(defn main []
+  (material/runApp
+    (material/MaterialApp
+      :title "Welcome to Flutter"
+      :theme (material/ThemeData :primarySwatch material.Colors/pink)
+      :home (material/Scaffold
+              :appBar (material/AppBar
+                        :title (widgets/Text "Welcome to ClojureDart"))
+              :body (widgets/Center
+                      :child (widgets/Text "This text is Centered."
+                               :style (painting/TextStyle
+                                        :color material.Colors/red
+                                        :fontSize 32.0)))))))
+
+(def home
+  (f/widget
+   :inherit [m/Theme]
+   (m/Scaffold
+    :appBar (m/AppBar :title (m/Text "ClojureDart Home Page"))
+    :body
+    (f/nest
+     m/Center
+     (m/Row
+      :mainAxisAlignment m.MainAxisAlignment/center
+      :children
+      (map (fn [k]
+             (f/widget
+                   ; :nested-in is almost like nest
+                   ; the difference is that if :key is set on the widget
+                   ; it will automatically be put on the outermost wrapper
+              :nested-in [m/Expanded]
+                   ; here we retrieve the model bound to :counters
+                   ; and expose it under the counters local
+              :inherit [:counters]
+              (dart:core/print (str "REBUILDING " k))
+              (m/Column
+               :mainAxisAlignment m.MainAxisAlignment/center
+               :children
+               [(m/Text (str k))
+                      ; below we deref the submodel, thus creating only
+                      ; a dependency on this subpart of the model.
+                      ; Try replacing by (get @counters k) and you'll see
+                      ; the widget being rebuilt on any change to the model
+                (m/Text (str @(get counters k))
+                        :style (-> theme .textTheme .displayLarge))
+                (m/ElevatedButton
+                 :onPressed #(swap! counters update k inc)
+                        ; (swap! (get counters k) inc) would have worked too
+                 :child (m/Text "Add"))])))
+           [:left :right]))))))
+
+(defn main []
+  (m/runApp
+   (m/MaterialApp
+    :title "Cljd Demo"
+    :theme (m/ThemeData :primarySwatch m.Colors/blue)
+    :home
+    (f/widget
+        ; here we establish a dynamic binding for the name :counters
+        ; to the associative model {:left 0 :right 0}
+     :bind {:counters {:left 0 :right 0}}
+     home))))
